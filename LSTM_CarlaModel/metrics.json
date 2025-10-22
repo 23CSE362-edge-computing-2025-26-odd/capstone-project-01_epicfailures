@@ -1,0 +1,99 @@
+{
+  "n_samples": 11,
+  "per_coordinate": {
+    "x": {
+      "mse": 0.019302770821491278,
+      "rmse": 0.13893441194135914,
+      "mae": 0.12323008884083206,
+      "median_ae": 0.12393993139266613,
+      "max_abs_error": 0.24408274888991954,
+      "mape_%": 0.4367793961359453,
+      "smape_%": 0.43758652297436146,
+      "r2": 0.9952149514697958,
+      "adjusted_r2": NaN,
+      "explained_variance": 0.9967265602647829,
+      "pearson_r": 0.9999573307612019,
+      "msle": 2.1903928673771167e-05
+    },
+    "y": {
+      "mse": 0.35071204851999743,
+      "rmse": 0.5922094633826763,
+      "mae": 0.5922064889561046,
+      "median_ae": 0.5912594199180603,
+      "max_abs_error": 0.5960304737091064,
+      "mape_%": 0.8720964841195533,
+      "smape_%": 0.8683101946892581,
+      "r2": -77775.99505694654,
+      "adjusted_r2": NaN,
+      "explained_variance": 0.2187177203420756,
+      "pearson_r": 0.6601718159050416,
+      "msle": NaN
+    },
+    "z": {
+      "mse": 2.6598017404635547e-07,
+      "rmse": 0.0005157326575332955,
+      "mae": 0.0004456311554267182,
+      "median_ae": 0.0004036274331155991,
+      "max_abs_error": 0.0009705302945804007,
+      "mape_%": 4.696895257459988,
+      "smape_%": 4.823465249020931,
+      "r2": 0.060881758314238255,
+      "adjusted_r2": NaN,
+      "explained_variance": 0.5029516086575849,
+      "pearson_r": 0.752483668950961,
+      "msle": 2.6111682211091744e-07
+    }
+  },
+  "euclidean": {
+    "ade": 0.608154306985008,
+    "median_error": 0.6062800861631659,
+    "max_error": 0.6396593695645768,
+    "rmse_euclidean": 0.6082886529614561,
+    "std_error": 0.012783748168957665
+  },
+  "within": {
+    "within_1.0m_fraction": 1.0,
+    "within_1.0m_accuracy_samplewise": 1.0,
+    "within_2.0m_fraction": 1.0,
+    "within_2.0m_accuracy_samplewise": 1.0,
+    "within_5.0m_fraction": 1.0,
+    "within_5.0m_accuracy_samplewise": 1.0
+  },
+  "per_coordinate_within": {
+    "threshold_1.0m": {
+      "x": {
+        "fraction_within_threshold": 1.0
+      },
+      "y": {
+        "fraction_within_threshold": 1.0
+      },
+      "z": {
+        "fraction_within_threshold": 1.0
+      }
+    },
+    "threshold_2.0m": {
+      "x": {
+        "fraction_within_threshold": 1.0
+      },
+      "y": {
+        "fraction_within_threshold": 1.0
+      },
+      "z": {
+        "fraction_within_threshold": 1.0
+      }
+    },
+    "threshold_5.0m": {
+      "x": {
+        "fraction_within_threshold": 1.0
+      },
+      "y": {
+        "fraction_within_threshold": 1.0
+      },
+      "z": {
+        "fraction_within_threshold": 1.0
+      }
+    }
+  },
+  "overall_mae": 0.23862740298412113,
+  "overall_rmse": 0.3511956175322915
+}
