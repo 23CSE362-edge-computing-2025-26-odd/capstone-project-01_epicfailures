@@ -1,14 +1,3 @@
-# lstm_predict_xyz.py
-"""
-Multi-output LSTM predictor for trajectories.csv
-Predicts next (x, y, z) coordinates.
-
-- Default CSV: trajectories.csv (same folder)
-- Saves model + scaler to LSTM_MODEL/
-- Saves predictions to predictions.csv
-- Prints a clean predictions block (only CSV rows) between clear separators
-"""
-
 import os
 import random
 import numpy as np
@@ -21,19 +10,17 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
-# ---------------- settings ----------------
-CSV_PATH = "trajectories.csv"   # file in same folder
+CSV_PATH = "trajectories.csv"
 SEQ_LEN = 8
 EPOCHS = 20
 BATCH_SIZE = 128
-PREDICT_DELTA = True            # predict delta (next - last) then add to last
-USE_CUMULATIVE = False         # keep x,y,z coordinates directly (not cumulative distance)
+PREDICT_DELTA = True
+USE_CUMULATIVE = False
 OUT_DIR = "LSTM_MODEL"
 MODEL_NAME = "lstm_xyz_predictor.keras"
 SCALER_NAME = "scalers_xyz.pkl"
 PRED_OUT = "predictions.csv"
 SEED = 42
-# ------------------------------------------
 
 def set_seed(seed):
     if seed is None:
@@ -97,22 +84,18 @@ def load_traces(csv_path, seq_len, use_cumulative=USE_CUMULATIVE, min_len=None,
         xs = g[x_col].values.astype(float)
         ys = g[y_col].values.astype(float)
         zs = g[z_col].values.astype(float)
-        # if use_cumulative==True you'd compute cumulative distance; we keep raw coords for xyz
-        coords = np.vstack([xs, ys, zs]).T  # shape (T,3)
+        coords = np.vstack([xs, ys, zs]).T
         per_len[str(vid)] = coords.shape[0]
         if coords.shape[0] >= min_len:
             traces[str(vid)] = coords.copy()
 
-    # print dataset stats (concise)
     lens = np.array(list(per_len.values())) if per_len else np.array([])
     if lens.size > 0:
         print(f"Loaded {len(per_len)} vehicles. trace lengths: count={len(lens)}, mean={lens.mean():.1f}, median={np.median(lens):.1f}, min={lens.min()}, max={lens.max()}")
-    # sample per-vehicle (first 8)
     for k, v in list(per_len.items())[:8]:
         print(f"  {k}: {v}")
 
     if len(traces) == 0 and auto_relax:
-        # try relaxed thresholds
         relaxed = max(seq_len + 1, seq_len + 5)
         print(f"No traces >= {min_len}. Trying relaxed_min={relaxed}")
         traces_relaxed = {}
@@ -157,11 +140,11 @@ def load_traces(csv_path, seq_len, use_cumulative=USE_CUMULATIVE, min_len=None,
 
 def build_dataset_multi(traces, seq_len, predict_delta=PREDICT_DELTA):
     X, y = [], []
-    for coords in traces.values():  # coords shape (T,3)
+    for coords in traces.values():
         T = coords.shape[0]
         for i in range(T - seq_len):
-            seq = coords[i:i+seq_len]         # shape (seq_len,3)
-            nxt = coords[i+seq_len]          # shape (3,)
+            seq = coords[i:i+seq_len]
+            nxt = coords[i+seq_len]
             if predict_delta:
                 target = nxt - coords[i+seq_len-1]
             else:
@@ -180,7 +163,7 @@ def make_model_multi(seq_len, lstm_units=128, dropout=0.2):
         LSTM(max(8, lstm_units//2)),
         Dropout(dropout),
         Dense(64, activation='relu'),
-        Dense(3)   # three outputs: x, y, z (or deltas)
+        Dense(3)
     ])
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss='mse')
     return model
@@ -217,24 +200,20 @@ def main():
     if len(X_raw) < 10:
         print("Warning: very few samples (<10). Consider lowering SEQ_LEN or using longer traces.")
 
-    # Flatten positions across all traces for scaler fit
-    all_pos = np.vstack([v for v in traces.values()])  # shape (total_timesteps, 3)
+    all_pos = np.vstack([v for v in traces.values()])
     scaler_X = MinMaxScaler()
-    scaler_X.fit(all_pos)   # fit per-feature on entire dataset positions
+    scaler_X.fit(all_pos)
 
-    # y_raw is shape (N,3)
     scaler_y = MinMaxScaler()
     if y_raw.size > 0:
         scaler_y.fit(y_raw)
 
-    # prepare scaled arrays
     N = X_raw.shape[0]
-    X_flat = X_raw.reshape(-1, 3)            # (N*seq_len, 3)
+    X_flat = X_raw.reshape(-1, 3)
     X_scaled_flat = scaler_X.transform(X_flat)
     X_scaled = X_scaled_flat.reshape(N, SEQ_LEN, 3)
     y_scaled = scaler_y.transform(y_raw) if y_raw.size > 0 else np.empty((0,3))
 
-    # train/test split
     split = int(0.9 * N) if N > 1 else 1
     X_train, X_test = X_scaled[:split], X_scaled[split:]
     y_train, y_test = y_scaled[:split], y_scaled[split:]
@@ -256,21 +235,18 @@ def main():
         verbose=1
     )
 
-    # Evaluate on test
     preds_scaled = model.predict(X_test) if len(X_test) > 0 else np.empty((0,3))
     preds = scaler_y.inverse_transform(preds_scaled) if preds_scaled.size > 0 else np.empty((0,3))
     y_true = scaler_y.inverse_transform(y_test) if y_test.size > 0 else np.empty((0,3))
 
-    # If predict_delta, convert predictions to absolute positions by adding last pos in seq
     if PREDICT_DELTA and len(preds) > 0:
-        last_positions = X_raw[split:][:, -1, :]  # last position in each test sequence before transform
+        last_positions = X_raw[split:][:, -1, :]
         preds_abs = preds + last_positions
         y_true_abs = y_true + last_positions
     else:
         preds_abs = preds
         y_true_abs = y_true
 
-    # compute MSE per coordinate
     if len(preds_abs) > 0:
         mse_x = mean_squared_error(y_true_abs[:,0], preds_abs[:,0])
         mse_y = mean_squared_error(y_true_abs[:,1], preds_abs[:,1])
@@ -278,10 +254,8 @@ def main():
     else:
         mse_x = mse_y = mse_z = float('nan')
 
-    # Save model + scalers
     save_model_scalers(model, scaler_X, scaler_y, out_dir=OUT_DIR)
 
-    # Build predictions output for ALL test samples (CSV with header x_pred,y_pred,z_pred,x_true,y_true,z_true)
     rows = []
     for i in range(len(preds_abs)):
         px, py, pz = preds_abs[i]
@@ -290,18 +264,15 @@ def main():
     df_out = pd.DataFrame(rows, columns=["x_pred","y_pred","z_pred","x_true","y_true","z_true"])
     df_out.to_csv(PRED_OUT, index=False)
 
-    # --- Now print clean output block (only CSV rows) separated from logs ---
     sep = "=" * 80
     header = "x_pred,y_pred,z_pred,x_true,y_true,z_true"
     print("\n" + sep)
     print("PREDICTIONS (CSV rows only) — saved to:", PRED_OUT)
     print(header)
-    # print rows only
     for r in rows:
         print(f"{r[0]},{r[1]},{r[2]},{r[3]},{r[4]},{r[5]}")
     print(sep + "\n")
 
-    # Also print a small summary (outside the clean block)
     print(f"Test samples: {len(preds_abs)}")
     print(f"MSE x: {mse_x:.6f}, y: {mse_y:.6f}, z: {mse_z:.6f}")
     print("Model and scalers saved to:", OUT_DIR)
